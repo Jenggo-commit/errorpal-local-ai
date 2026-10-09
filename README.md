@@ -24,7 +24,7 @@ Open your terminal and download the coding-optimized Qwen 2.5 3B model locally:
 Bash
 
 ```bash
-ollama pull qwen2.5:0.5b
+ollama pull qwen2.5-coder:0.5b
 ```
 
 **Third:** Start the Ollama Service
