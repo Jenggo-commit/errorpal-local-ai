@@ -12,6 +12,8 @@ Node.js (v18+)
 
 Ollama 
 ```
+INSTALLATION LINKS:
+
 https://nodejs.org/en/download
 
 https://ollama.com/download
