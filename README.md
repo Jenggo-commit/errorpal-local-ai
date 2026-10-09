@@ -7,30 +7,39 @@ Follow these steps to run ErrorPal Pro locally on your machine:
 First: Prerequisites
 Ensure you have the following installed:
 
+```bash
 Node.js (v18+)
 
 Ollama
+```
+
 
 Second: Pull the Local AI Model
 Open your terminal and download the coding-optimized Qwen 2.5 3B model locally:
 
 Bash
 
+```bash
 ollama pull qwen2.5:3b
+```
 
 Third: Start the Ollama Service
 Ensure your local inference engine is running in the background:
 
 Bash
 
+```bash
 ollama serve
+```
 
 Fourth: Install Dependencies
 Clone the repository and install the project packages:
 
 Bash
 
+```bash
 npm install
+```
 
 Fifth: Launch the Development Server
 Start the local development server:
