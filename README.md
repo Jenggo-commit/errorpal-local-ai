@@ -2,7 +2,55 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+Follow these steps to run ErrorPal Pro locally on your machine:
+
+**First:** Prerequisites
+Ensure you have the following installed:
+
+```bash
+Node.js (v18+) 
+
+Ollama 
+```
+INSTALLATION LINKS:
+
+https://nodejs.org/en/download
+
+https://ollama.com/download
+
+**Second:** Pull the Local AI Model
+Open your terminal and download the coding-optimized Qwen 2.5 3B model locally:
+
+Bash
+
+```bash
+ollama pull qwen2.5:0.5b
+```
+
+**Third:** Start the Ollama Service
+Ensure your local inference engine is running in the background:
+
+Bash
+
+```bash
+ollama serve
+or
+ollama run qwen2.5-coder:0.5b
+```
+
+**Fourth:** Install Dependencies
+Clone the repository and install the project packages:
+
+Bash
+
+```bash
+npm install
+```
+
+**Fifth:** Launch the Development Server
+Start the local development server:
+
+Bash
 
 ```bash
 npm run dev
@@ -14,7 +62,11 @@ pnpm dev
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+**Lastly:** Open the Workspace
+Open your web browser and navigate to:
+
+Plaintext
+http://localhost:3000
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
