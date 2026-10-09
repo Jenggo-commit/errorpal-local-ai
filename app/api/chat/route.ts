@@ -2,13 +2,17 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 
-// Helper to recursively read code files from a target directory
 function walkDir(dir: string, fileList: string[] = []): string[] {
   const files = fs.readdirSync(dir);
   files.forEach(file => {
     const filePath = path.join(dir, file);
-    // Skip node_modules, .git, build directories, etc.
-    if (filePath.includes('node_modules') || filePath.includes('.git') || filePath.includes('.next')) {
+    if (
+      filePath.includes('node_modules') || 
+      filePath.includes('.git') || 
+      filePath.includes('.next') || 
+      filePath.includes('tsconfig.json') || 
+      filePath.includes('package.json')
+    ) {
       return;
     }
     if (fs.statSync(filePath).isDirectory()) {
@@ -22,50 +26,65 @@ function walkDir(dir: string, fileList: string[] = []): string[] {
 
 export async function POST(req: Request) {
   try {
-    const { targetPath, mode } = await req.json();
+    const { targetPath, inputData, mode, language = 'JavaScript', isSocratic, isRoast } = await req.json();
 
-    // Default to scanning the current workspace or provided path safely
-    const resolvedPath = targetPath ? path.resolve(targetPath) : process.cwd();
-
-    if (!fs.existsSync(resolvedPath)) {
-      return NextResponse.json({ error: 'Target directory path does not exist on local machine.' }, { status: 400 });
+    let codeContext = inputData || "";
+    if (targetPath) {
+      const resolvedPath = path.resolve(targetPath);
+      if (fs.existsSync(resolvedPath)) {
+        const files = walkDir(resolvedPath);
+        files.slice(0, 3).forEach(file => {
+          const relativeName = path.relative(resolvedPath, file);
+          const content = fs.readFileSync(file, 'utf8');
+          codeContext += `\n--- FILE: ${relativeName} ---\n${content}\n`;
+        });
+      }
     }
 
-    const files = walkDir(resolvedPath);
-    let combinedCodeContext = "";
+    let modeInstruction = "Analyze and debug the provided code snippet or error log.";
+    if (mode === 'refactor') {
+      modeInstruction = "Clean up, optimize, and refactor the provided code for better performance and readability.";
+    } else if (mode === 'explain') {
+      modeInstruction = "Provide a clear, detailed line-by-line explanation of what this code does.";
+    } else if (mode === 'test') {
+      modeInstruction = "Generate comprehensive unit test cases for this code using standard testing practices.";
+    } else if (mode === 'quiz') {
+      modeInstruction = `Generate a brand new, engaging daily coding challenge or interview puzzle for ${language}. Include a problem description, an example test case, and hints without spoiling the final answer.`;
+      if (!codeContext.trim()) {
+        codeContext = `Generate a fresh daily coding challenge for ${language}.`;
+      }
+    }
 
-    // Read contents of up to 10 core files to fit within local model token limits
-    files.slice(0, 10).forEach(file => {
-      const relativeName = path.relative(resolvedPath, file);
-      const content = fs.readFileSync(file, 'utf8');
-      combinedCodeContext += `\n--- FILE: ${relativeName} ---\n${content}\n`;
-    });
+    if (isSocratic) modeInstruction += " Act as a Socratic tutor: do NOT give the direct solution. Ask guiding questions.";
+    if (isRoast) modeInstruction += " Roast the code with sarcastic senior developer critique while still providing the actual fix.";
 
-    const systemPrompt = `You are a senior software architect analyzing an entire local project codebase. Review the multi-file context below for architectural bugs, broken component imports, or type discrepancies.`;
+    const promptText = `You are ErrorPal Pro, an elite AI coding mentor. 
+Language: ${language}
+Directive: ${modeInstruction}
 
-    const prompt = `${systemPrompt}
-
-Project Files Context:
-${combinedCodeContext}`;
+Target Code / Prompt:
+${codeContext}`;
 
     const ollamaRes = await fetch('http://localhost:11434/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'qwen2.5:3b',
-        prompt: prompt,
+        model: 'qwen2.5-coder:0.5b',
+        prompt: promptText,
         stream: false,
         options: {
-          temperature: 0.2,
-          num_predict: 500,
+          temperature: 0.3,
+          num_predict: 350,
         }
       }),
     });
 
     const data = await ollamaRes.json();
-    return NextResponse.json({ result: data.response, scannedFiles: files.length });
+    const outputText = data.response || data.message?.content || "Model returned an empty response.";
+
+    return NextResponse.json({ result: outputText });
 
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Failed to scan local directory' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Failed to process local inference' }, { status: 500 });
   }
 }
