@@ -4,7 +4,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 Follow these steps to run ErrorPal Pro locally on your machine:
 
-**First: Prerequisites
+*First: Prerequisites
 Ensure you have the following installed:
 
 ```bash
@@ -14,7 +14,7 @@ Ollama
 ```
 
 
-**Second: Pull the Local AI Model
+*Second:* Pull the Local AI Model
 Open your terminal and download the coding-optimized Qwen 2.5 3B model locally:
 
 Bash
