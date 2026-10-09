@@ -10,6 +10,13 @@ interface ChatMessage {
   time?: number;
 }
 
+interface HistoryItem {
+  id: string;
+  title: string;
+  messages: ChatMessage[];
+  date: string;
+}
+
 const LANGUAGES = ['JavaScript', 'Python', 'React', 'TypeScript', 'Node.js', 'C++'];
 const MODES = [
   { id: 'debug', label: '#Debug&Fix' },
@@ -35,6 +42,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [quoteIndex, setQuoteIndex] = useState(0);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [historyList, setHistoryList] = useState<HistoryItem[]>([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const [streak, setStreak] = useState(1);
@@ -42,8 +50,10 @@ export default function Home() {
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem('errorpal_gemini_chat');
-    if (saved) setMessages(JSON.parse(saved));
+    const savedChat = localStorage.getItem('errorpal_gemini_chat');
+    const savedHistory = localStorage.getItem('errorpal_topic_history');
+    if (savedChat) setMessages(JSON.parse(savedChat));
+    if (savedHistory) setHistoryList(JSON.parse(savedHistory));
   }, []);
 
   useEffect(() => {
@@ -60,6 +70,23 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [loading]);
 
+  const saveTopicToHistory = (currentMsgs: ChatMessage[]) => {
+    if (currentMsgs.length === 0) return;
+    const firstUserMsg = currentMsgs.find(m => m.role === 'user')?.content || 'Coding Session';
+    const title = firstUserMsg.slice(0, 30) + (firstUserMsg.length > 30 ? '...' : '');
+    
+    const newItem: HistoryItem = {
+      id: Date.now().toString(),
+      title,
+      messages: currentMsgs,
+      date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    const updatedHistory = [newItem, ...historyList.filter(h => h.title !== title)].slice(0, 6);
+    setHistoryList(updatedHistory);
+    localStorage.setItem('errorpal_topic_history', JSON.stringify(updatedHistory));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (activeMode !== 'quiz' && !inputData.trim()) return;
@@ -72,7 +99,8 @@ export default function Home() {
       mode: activeMode,
     };
 
-    setMessages(prev => [...prev, userMsg]);
+    const nextMessages = [...messages, userMsg];
+    setMessages(nextMessages);
     setInputData('');
     setLoading(true);
     const startTime = performance.now();
@@ -102,11 +130,10 @@ export default function Home() {
         time: durationSeconds,
       };
 
-      setMessages(prev => {
-        const updated = [...prev, aiMsg];
-        localStorage.setItem('errorpal_gemini_chat', JSON.stringify(updated));
-        return updated;
-      });
+      const finalMessages = [...nextMessages, aiMsg];
+      setMessages(finalMessages);
+      localStorage.setItem('errorpal_gemini_chat', JSON.stringify(finalMessages));
+      saveTopicToHistory(finalMessages);
 
       setBugsSquashed(prev => prev + 1);
     } catch (err) {
@@ -122,6 +149,12 @@ export default function Home() {
     }
   };
 
+  const loadHistoryItem = (item: HistoryItem) => {
+    setMessages(item.messages);
+    localStorage.setItem('errorpal_gemini_chat', JSON.stringify(item.messages));
+    setMobileMenuOpen(false);
+  };
+
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100 font-sans antialiased flex items-center justify-center p-1 md:p-3 relative">
       <div className="w-full max-w-[98vw] h-auto md:h-[96vh] bg-black/90 backdrop-blur-2xl border border-neutral-800/80 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
@@ -134,7 +167,7 @@ export default function Home() {
             <div className="w-3 h-3 rounded-full bg-neutral-700"></div>
           </div>
           <div className="text-xs font-mono text-neutral-400 tracking-wider">
-            <span>#ErrorPal-Pro.app // Wide Gemini Layout</span>
+            <span>#ErrorPal-Pro.app // Scroll & Formatting Fixed</span>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden text-[10px] font-mono bg-neutral-900 border border-neutral-800 px-2 py-1 rounded text-neutral-300">
@@ -150,9 +183,9 @@ export default function Home() {
         {/* Workspace Container */}
         <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
           
-          {/* Sidebar Controls */}
+          {/* Sidebar Controls & History */}
           <aside className={`w-full md:w-80 bg-neutral-950 border-r border-neutral-900 p-4 flex flex-col justify-between shrink-0 overflow-y-auto absolute md:relative z-20 inset-0 transition-transform duration-200 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
-            <div className="space-y-6">
+            <div className="space-y-5">
               <div className="bg-neutral-900/60 border border-neutral-800/80 rounded-xl p-3 space-y-1.5 font-mono text-[11px]">
                 <div className="flex justify-between items-center">
                   <span className="text-neutral-400">#Streak</span>
@@ -165,7 +198,7 @@ export default function Home() {
               </div>
 
               <div className="space-y-1">
-                <p className="text-[10px] font-mono uppercase tracking-wider text-neutral-500 px-2 mb-1.5">#WorkspaceModes</p>
+                <p className="text-[10px] font-mono uppercase tracking-wider text-neutral-500 px-2 mb-1">#WorkspaceModes</p>
                 {MODES.map((m) => (
                   <button
                     key={m.id}
@@ -178,7 +211,7 @@ export default function Home() {
               </div>
 
               <div>
-                <p className="text-[10px] font-mono uppercase tracking-wider text-neutral-500 px-2 mb-1.5">#TargetEnvironment</p>
+                <p className="text-[10px] font-mono uppercase tracking-wider text-neutral-500 px-2 mb-1">#TargetEnvironment</p>
                 <div className="flex flex-wrap gap-1">
                   {LANGUAGES.map((lang) => (
                     <button
@@ -193,7 +226,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="space-y-2 font-mono pt-2">
+              <div className="space-y-2 font-mono pt-1">
                 <div className="flex items-center justify-between bg-neutral-900/40 border border-neutral-800 p-2.5 rounded-xl">
                   <span className="text-[11px] text-neutral-300">#SocraticTutor</span>
                   <button type="button" onClick={() => setIsSocratic(!isSocratic)} className={`w-8 h-4 flex items-center rounded-full p-0.5 transition-colors ${isSocratic ? 'bg-neutral-200' : 'bg-neutral-800'}`}>
@@ -207,11 +240,34 @@ export default function Home() {
                   </button>
                 </div>
               </div>
+
+              {/* Previous Topics History Section */}
+              <div className="space-y-1.5 pt-2 border-t border-neutral-900">
+                <p className="text-[10px] font-mono uppercase tracking-wider text-neutral-500 px-2">#PreviousTopics</p>
+                <div className="space-y-1 max-h-40 overflow-y-auto pr-1">
+                  {historyList.length === 0 ? (
+                    <p className="text-[10px] font-mono text-neutral-600 px-2">No saved topics yet.</p>
+                  ) : (
+                    historyList.map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => loadHistoryItem(item)}
+                        className="w-full text-left bg-neutral-900/40 hover:bg-neutral-900 border border-neutral-900 p-2 rounded-lg truncate transition cursor-pointer font-mono"
+                      >
+                        <div className="flex justify-between items-center text-[10px] text-neutral-300">
+                          <span className="truncate">{item.title}</span>
+                          <span className="text-neutral-600 text-[9px] ml-1 shrink-0">{item.date}</span>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
             </div>
 
-            <div className="pt-4 mt-4 border-t border-neutral-900/80">
+            <div className="pt-3 mt-3 border-t border-neutral-900">
               <button onClick={() => { setMessages([]); localStorage.removeItem('errorpal_gemini_chat'); }} className="w-full text-center text-[10px] font-mono bg-neutral-900 hover:bg-neutral-800 text-neutral-400 py-2 rounded-lg border border-neutral-800">
-                #ClearChatHistory
+                #ClearCurrentChat
               </button>
             </div>
           </aside>
@@ -219,16 +275,16 @@ export default function Home() {
           {/* Main Chat Feed Area */}
           <main className="flex-1 flex flex-col bg-neutral-950/40 overflow-hidden">
             
-            {/* Scrollable Message History with Centered Empty State */}
-            <div className="flex-1 overflow-y-auto p-6 md:p-8 flex flex-col justify-center">
+            {/* Scrollable Message History - Flowing from top with proper padding */}
+            <div className="flex-1 overflow-y-auto p-6 md:p-8 flex flex-col justify-start">
               {messages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center text-center space-y-3 font-mono my-auto">
+                <div className="flex-1 flex flex-col items-center justify-center text-center space-y-3 font-mono my-auto">
                   <div className="w-12 h-12 rounded-2xl bg-neutral-900 border border-neutral-800 flex items-center justify-center text-xl">⚡</div>
                   <h3 className="text-sm font-medium text-neutral-200">#ErrorPalPro Wide Workspace</h3>
                   <p className="text-xs text-neutral-500 max-w-md">Select your workspace mode on the left, choose your target language, and send your code prompt or generate challenges below.</p>
                 </div>
               ) : (
-                <div className="space-y-6 my-auto">
+                <div className="space-y-6 w-full max-w-5xl mx-auto my-auto">
                   {messages.map((msg) => (
                     <div key={msg.id} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
                       <div className="flex items-center gap-2 mb-1 px-1">
@@ -241,7 +297,11 @@ export default function Home() {
                           </span>
                         )}
                       </div>
-                      <div className={`max-w-4xl rounded-2xl p-5 text-xs font-mono leading-relaxed border ${msg.role === 'user' ? 'bg-neutral-900 text-neutral-200 border-neutral-800' : 'bg-black/60 text-neutral-100 border-neutral-800/80 whitespace-pre-wrap'}`}>
+                      <div className={`max-w-4xl rounded-2xl p-5 text-xs font-mono leading-relaxed border whitespace-pre-wrap ${
+                        msg.role === 'user' 
+                          ? 'bg-neutral-900 text-neutral-200 border-neutral-800' 
+                          : 'bg-black/60 text-neutral-100 border-neutral-800/80'
+                      }`}>
                         {msg.content}
                       </div>
                     </div>
