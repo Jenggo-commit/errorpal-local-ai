@@ -8,9 +8,9 @@ Follow these steps to run ErrorPal Pro locally on your machine:
 Ensure you have the following installed:
 
 ```bash
-Node.js (v18+)
+Node.js (v18+) https://nodejs.org/en/download
 
-Ollama
+Ollama https://ollama.com/download
 ```
 
 
