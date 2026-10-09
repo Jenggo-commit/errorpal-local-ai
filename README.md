@@ -24,11 +24,14 @@ Open your terminal and download the coding-optimized Qwen 2.5 3B model locally:
 Bash
 
 ```bash
-ollama pull qwen2.5:0.5b
+ollama pull qwen2.5-coder:0.5b
 ```
 
 **Third:** Start the Ollama Service
+
 Ensure your local inference engine is running in the background:
+
+Open your terminal and run
 
 Bash
 
@@ -36,7 +39,14 @@ Bash
 ollama serve
 or
 ollama run qwen2.5-coder:0.5b
+
+if output when the other one is inputted:
+
+Error: listen tcp 127.0.0.1:11434: bind: Only one usage of each socket address (protocol/network address/port) is normally permitted.
+
+-its running
 ```
+
 
 **Fourth:** Install Dependencies
 Clone the repository and install the project packages:
@@ -44,7 +54,7 @@ Clone the repository and install the project packages:
 Bash
 
 ```bash
-npm install
+npm install - do inside the folder of the project (C:\..\errorpal-local-ai)
 ```
 
 **Fifth:** Launch the Development Server
@@ -60,6 +70,8 @@ yarn dev
 pnpm dev
 # or
 bun dev
+
+inside (C:\..\errorpal-local-ai)
 ```
 
 **Lastly:** Open the Workspace
